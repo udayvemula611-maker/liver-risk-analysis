@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -19,6 +19,12 @@ export default function PrescriptionManager({
     const router = useRouter();
     const [isAdding, setIsAdding] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [formData, setFormData] = useState({
         prescription_text: '',
         follow_up_date: ''
@@ -55,7 +61,9 @@ export default function PrescriptionManager({
             <div className="bg-white rounded-xl border border-gray-200 mt-8 font-sans overflow-hidden">
                 <div className="bg-[#1E3A8A] text-white px-6 py-4 flex justify-between items-center">
                     <h3 className="font-bold text-lg tracking-wide">Doctor Prescription</h3>
-                    <span className="text-sm rounded-full bg-blue-800 px-3 py-1 font-medium">{new Date(initialPrescription.created_at).toLocaleDateString()}</span>
+                    <span className="text-sm rounded-full bg-blue-800 px-3 py-1 font-medium">
+                        {mounted ? new Date(initialPrescription.created_at).toLocaleDateString() : ''}
+                    </span>
                 </div>
 
                 <div className="p-8 pb-12 relative bg-[#F8FAFC]">
@@ -76,7 +84,9 @@ export default function PrescriptionManager({
                         <div className="mt-8 pt-4 border-t border-gray-200 flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                             <span className="font-bold text-gray-700">Follow-up Recommended:</span>
-                            <span className="text-[#1E3A8A] font-semibold">{new Date(initialPrescription.follow_up_date).toLocaleDateString()}</span>
+                            <span className="text-[#1E3A8A] font-semibold">
+                                {mounted ? new Date(initialPrescription.follow_up_date).toLocaleDateString() : ''}
+                            </span>
                         </div>
                     )}
 

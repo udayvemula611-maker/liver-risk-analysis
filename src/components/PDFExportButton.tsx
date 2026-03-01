@@ -12,9 +12,14 @@ export default function PDFExportButton({ report, template }: { report: LiverRep
     const handleExport = async () => {
         setIsExporting(true);
         try {
-            // Dynamic import to avoid SSR issues with window object
-            const html2pdfModule = await import('html2pdf.js');
-            const html2pdf = html2pdfModule.default || html2pdfModule;
+            // Because html2canvas inherently crashes when attempting to parse Tailwind v4's globally-injected root oklch/lab variables 
+            // from the document stylesheets (even when isolated in iframes or passed as strings), the most robust and elegant 
+            // solution for Next.js 15 App Router is utilizing a clean, sandboxed native print window.
+            const newWindow = window.open('', '_blank');
+            if (!newWindow) {
+                toast.error("Please allow popups to generate PDF");
+                return;
+            }
 
             const brandingColor = template?.primary_color || '#1E3A8A';
             const hospitalName = template?.hospital_name || 'HepatoScope Clinic';
@@ -99,17 +104,24 @@ export default function PDFExportButton({ report, template }: { report: LiverRep
                 </div>
             `;
 
-            // Setup html2pdf options
-            const opt: any = {
-                margin: 10,
-                filename: `Liver_Report_${report.patient_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            // Generate
-            await html2pdf().set(opt).from(htmlString).save();
+            // Setup native print options
+            newWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Liver_Report_${report.patient_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}</title>
+                        <style>
+                            @media print {
+                                @page { margin: 10mm; }
+                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        </style>
+                    </head>
+                    <body onload="setTimeout(() => { window.print(); window.close(); }, 250);">
+                        ${htmlString}
+                    </body>
+                </html>
+            `);
+            newWindow.document.close();
 
             toast.success("PDF Exported Successfully");
 
