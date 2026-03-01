@@ -59,8 +59,8 @@ The application computes mathematical severity formulas natively and synthesizes
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/udayvemula611-maker/hepatoscope.git
-cd hepatoscope
+git clone https://github.com/udayvemula611-maker/hepatoscope-liver-risk-analysis.git
+cd hepatoscope-liver-risk-analysis
 ```
 
 ### 2. Install dependencies
