@@ -1,11 +1,11 @@
-# 🔬 HepatoScope: Hybrid AI Clinical Decision Support System
+# 🔬 Liver Analysis: Hybrid AI Clinical Decision Support System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg?style=flat&logo=next.js)](https://nextjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E.svg?style=flat&logo=supabase)](https://supabase.com/)
 [![Ollama](https://img.shields.io/badge/Ollama-Local_LLM-white.svg?style=flat&logo=ollama)](https://ollama.ai/)
 
-**HepatoScope** is a multi-tiered Clinical Decision Support System (CDSS) designed to assist in the early detection, risk stratification, and patient-friendly communication of liver diseases. By bridging the gap between raw biomarker data (Liver Function Tests) and actionable clinical intelligence, it provides a comprehensive 360-degree workflow for Admins, Doctors, and Patients.
+**Liver Analysis** is a multi-tiered Clinical Decision Support System (CDSS) designed to assist in the early detection, risk stratification, and patient-friendly communication of liver diseases. By bridging the gap between raw biomarker data (Liver Function Tests) and actionable clinical intelligence, it provides a comprehensive 360-degree workflow for Admins, Doctors, and Patients.
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## 🏗️ System Architecture
 
-HepatoScope employs a modern, HIPAA-conscious three-tier web architecture:
+Liver Analysis employs a modern, HIPAA-conscious three-tier web architecture:
 
 *   **Presentation Tier (Frontend)**: Developed in **Next.js 14** (App Router) using React, styled with **Tailwind CSS** and **Shadcn/ui** components for a responsive and clinical aesthetic.
 *   **Business Logic Tier (API)**: Next.js Serverless API routes mediate all logic. The core component, `riskEngine.ts`, runs deterministically under 10ms. A secondary route hits a local/remote instance of **Ollama** (e.g., Llama 3 or Mistral) for prompt-engineered medical synthesis.
@@ -76,8 +76,8 @@ Using the **Indian Liver Patient Dataset (ILPD)** from the UCI Machine Learning 
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/hepatoscope.git
-cd hepatoscope
+git clone https://github.com/your-username/liver-analysis.git
+cd liver-analysis
 ```
 
 ### 2. Install Dependencies
@@ -114,4 +114,4 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-*HepatoScope was developed as a hybrid Clinical Decision Support System, emphasizing the fusion of 100% explainable algorithmic safety with Generative AI communication.*
+*Liver Analysis was developed as a hybrid Clinical Decision Support System, emphasizing the fusion of 100% explainable algorithmic safety with Generative AI communication.*

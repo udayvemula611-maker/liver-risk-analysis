@@ -20,7 +20,7 @@ export default function Home() {
         {/* Application Logo */}
         <div className="flex justify-center mb-6">
           <div className="h-20 w-20 bg-[#1E3A8A] rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-white text-4xl font-bold">H</span> {/* 'H' for Hepatoscope or Health */}
+            <span className="text-white text-4xl font-bold">L</span> {/* 'L' for Liver Analysis */}
           </div>
         </div>
 

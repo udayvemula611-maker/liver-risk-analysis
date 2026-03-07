@@ -23,7 +23,7 @@ export default async function Navbar() {
                 {/* Application Logo and Title */}
                 <Link href="/" className="flex items-center space-x-2">
                     <div className="h-8 w-8 bg-[#1E3A8A] rounded-md flex items-center justify-center shadow-sm">
-                        <span className="text-white text-sm font-bold">H</span>
+                        <span className="text-white text-sm font-bold">L</span>
                     </div>
                     <span className="font-bold sm:inline-block text-xl text-[#1E3A8A] tracking-tight">
                         Liver Analysis

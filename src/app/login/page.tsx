@@ -52,7 +52,7 @@ export default function Login() {
                 <div>
                     <div className="flex justify-center">
                         <div className="h-12 w-12 bg-[#1E3A8A] rounded-full flex items-center justify-center">
-                            <span className="text-white text-xl font-bold">H</span>
+                            <span className="text-white text-xl font-bold">L</span>
                         </div>
                     </div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-[#1E3A8A]">
