@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,41 +13,55 @@ import { calculateRisk } from '@/lib/riskEngine';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import * as motion from 'framer-motion/client';
 
+// Zod schema for validating the liver form inputs. Each field is defined with its type, validation rules, and error messages.
 const formSchema = z.object({
     patient_id: z.string().min(1, "Please select a registered patient"),
-    age: z.coerce.number().min(1),
-    gender: z.string().min(1),
-    total_bilirubin: z.coerce.number().min(0).step(0.1),
-    sgpt: z.coerce.number().min(0),
-    sgot: z.coerce.number().min(0),
-    albumin: z.coerce.number().min(0).step(0.1),
-    alk_phosphate: z.coerce.number().min(0).optional(),
-    protime: z.coerce.number().min(0).optional(),
-    fatigue: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
-    spiders: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
-    ascites: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
-    varices: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
-    steroid: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
-    antivirals: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
-    histology: z.string().default('None'),
+    age: z.coerce.number().min(1, "Age must be at least 1").max(120, "Age cannot exceed 120"),
+    gender: z.string().min(1, "Gender is required"),
+    total_bilirubin: z.coerce.number().min(0, "Total Bilirubin cannot be negative").step(0.1, "Total Bilirubin must be a multiple of 0.1"),
+    sgpt: z.coerce.number().min(0, "SGPT cannot be negative"),
+    sgot: z.coerce.number().min(0, "SGOT cannot be negative"),
+    albumin: z.coerce.number().min(0, "Albumin cannot be negative").step(0.1, "Albumin must be a multiple of 0.1"),
+    alk_phosphate: z.coerce.number().min(0, "Alkaline Phosphate cannot be negative").optional(),
+    protime: z.coerce.number().min(0, "Prothrombin Time cannot be negative").optional(),
+    fatigue: z.preprocess((val) => val === 'true' || val === true, z.boolean()), // Converts string 'true'/'false' or boolean to boolean.
+    spiders: z.preprocess((val) => val === 'true' || val === true, z.boolean()), // Converts string 'true'/'false' or boolean to boolean.
+    ascites: z.preprocess((val) => val === 'true' || val === true, z.boolean()), // Converts string 'true'/'false' or boolean to boolean.
+    varices: z.preprocess((val) => val === 'true' || val === true, z.boolean()), // Converts string 'true'/'false' or boolean to boolean.
+    steroid: z.preprocess((val) => val === 'true' || val === true, z.boolean()), // Converts string 'true'/'false' or boolean to boolean.
+    antivirals: z.preprocess((val) => val === 'true' || val === true, z.boolean()), // Converts string 'true'/'false' or boolean to boolean.
+    histology: z.string().default('None'), // Defaults to 'None' if not provided.
 });
 
+// Type definition for the form data, inferred from the Zod schema.
 type FormData = z.infer<typeof formSchema>;
 
+/**
+ * LiverForm Component
+ *
+ * This component provides a comprehensive form for doctors to input patient's liver function data,
+ * calculate a real-time risk assessment, and generate an AI-synthesized report. It integrates
+ * with `react-hook-form` for efficient form management and `zod` for robust schema validation.
+ * Patient data can be pre-filled if a registered patient is selected.
+ *
+ * @param {object} props - The properties for the component.
+ * @param {UserProfile[]} [props.patients=[]] - An optional array of patient user profiles to populate the patient selection dropdown.
+ */
 export default function LiverForm({ patients = [] }: { patients?: UserProfile[] }) {
-    const router = useRouter();
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const router = useRouter(); // Next.js router for navigation actions.
+    const [loading, setLoading] = useState(false); // Manages loading state during form submission.
+    const [error, setError] = useState(''); // Stores and displays any error messages from API calls.
 
+    // Initializes react-hook-form with Zod resolver for schema validation.
     const {
-        register,
-        handleSubmit,
-        watch,
-        setValue,
-        formState: { errors }
+        register, // Function to register inputs with React Hook Form, connecting them to the form state.
+        handleSubmit, // Function to handle form submission, includes validation and calls onSubmit or onError.
+        watch, // Function to subscribe to and watch input values for real-time updates without re-renders.
+        setValue, // Function to programmatically set input values.
+        formState: { errors } // Object containing form validation errors, accessible for display.
     } = useForm<FormData>({
-        resolver: zodResolver(formSchema) as any,
-        defaultValues: {
+        resolver: zodResolver(formSchema) as any, // Integrates Zod schema for validation rules.
+        defaultValues: { // Sets initial default values for form fields.
             patient_id: '',
             age: 0,
             gender: '',
@@ -60,81 +75,99 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
         }
     });
 
+    // Watches the selected patient ID to trigger auto-filling of age and gender.
     const selectedPatientId = watch('patient_id');
 
-    // Auto-fill Age and Gender when patient is selected
+    // Effect hook to auto-fill Age and Gender when a patient is selected from the dropdown.
+    // This enhances user experience by populating known patient demographic data.
     useEffect(() => {
         const selectedPatient = patients.find(p => p.id === selectedPatientId);
         if (selectedPatient) {
+            // Update form fields with patient's age and gender if available.
             if (selectedPatient.age) setValue('age', selectedPatient.age);
             if (selectedPatient.gender) setValue('gender', selectedPatient.gender);
         }
-    }, [selectedPatientId, patients, setValue]);
+    }, [selectedPatientId, patients, setValue]); // Dependencies for the effect: re-run when patient selection or patient list changes.
 
-    const formValues = watch(); // Live track all inputs
+    // Watches all form values to enable real-time risk calculation feedback.
+    const currentFormValues = watch();
 
-    // Calculate deterministic risk safely assuming partial data might be present
+    // Calculates live risk based on current form values. Values are safely coerced to numbers
+    // to handle potential undefined or non-numeric inputs gracefully for the risk engine.
     const liveRisk = calculateRisk({
-        patient_name: '',
-        ...formValues,
-        total_bilirubin: Number(formValues.total_bilirubin) || 0,
-        sgpt: Number(formValues.sgpt) || 0,
-        sgot: Number(formValues.sgot) || 0,
-        albumin: Number(formValues.albumin) || 0,
-        alk_phosphate: Number(formValues.alk_phosphate) || 0,
-        protime: Number(formValues.protime) || 0,
-        age: Number(formValues.age) || 0,
-        gender: formValues.gender || 'Unknown',
-    } as any);
+        patient_name: '', // Patient name is not directly used in the risk calculation logic.
+        ...currentFormValues,
+        total_bilirubin: Number(currentFormValues.total_bilirubin) || 0,
+        sgpt: Number(currentFormValues.sgpt) || 0,
+        sgot: Number(currentFormValues.sgot) || 0,
+        albumin: Number(currentFormValues.albumin) || 0,
+        alk_phosphate: Number(currentFormValues.alk_phosphate) || 0,
+        protime: Number(currentFormValues.protime) || 0,
+        age: Number(currentFormValues.age) || 0,
+        gender: currentFormValues.gender || 'Unknown',
+    } as any); // Type assertion is used here as ReportInput might be slightly different from currentFormValues
 
+    /**
+     * Handles the form submission after successful validation.
+     * This function sends the patient data to the backend for AI analysis and report generation,
+     * then navigates the user to the generated report page upon success.
+     * @param {FormData} data - The validated form data containing all patient and lab values.
+     */
     const onSubmit = async (data: FormData) => {
-        setLoading(true);
-        setError('');
+        setLoading(true); // Set loading state to true to disable form and show feedback.
+        setError('');     // Clear any previous error messages.
 
-        // Provide the correct patient_name for the backend to use
+        // Find the selected patient to include their full name in the payload for the backend.
         const selectedPatient = patients.find(p => p.id === data.patient_id);
         const payload = {
             ...data,
             patient_name: selectedPatient ? selectedPatient.full_name : 'Unknown Patient'
         };
 
-        console.log("LiverForm: Submitting Data", payload);
+        console.log("LiverForm: Submitting Data", payload); // Log the payload for debugging purposes.
 
         try {
+            // Make an asynchronous API call to the '/api/analyze' endpoint to generate the report.
             const res = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(payload), // Send the prepared payload as a JSON string.
             });
 
-            const result = await res.json();
-            console.log("LiverForm: API Response", result);
+            const result = await res.json(); // Parse the JSON response from the API.
+            console.log("LiverForm: API Response", result); // Log the API response for review.
 
             if (!res.ok) {
+                // If the HTTP response status is not OK, throw an error with a message from the API or a default.
                 throw new Error(result.error || 'Failed to submit report');
             }
 
-            toast.success('Analysis completed successfully!');
-            router.push(`/doctor/reports/${result.reportId}`);
+            toast.success('Analysis completed successfully!'); // Display a success notification to the user.
+            router.push(`/doctor/reports/${result.reportId}`); // Redirect the user to the newly generated report page.
         } catch (err: any) {
-            setError(err.message);
-            toast.error(err.message);
+            // Catch and handle any errors that occur during the API call or response processing.
+            setError(err.message); // Update the error state with the error message.
+            toast.error(err.message); // Display an error notification to the user.
         } finally {
-            setLoading(false);
+            setLoading(false); // Ensure loading state is reset to false, regardless of success or failure.
         }
     };
 
+    /**
+     * Handles form validation errors. This function is called if `handleSubmit` encounters validation issues.
+     * @param {any} errors - The errors object from react-hook-form, containing details about validation failures.
+     */
     const onError = (errors: any) => {
-        console.error("LiverForm Validation Errors:", errors);
+        console.error("LiverForm Validation Errors:", errors); // Log validation errors for developer debugging.
     };
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20 }} // Initial animation state (start slightly transparent and below position).
+            animate={{ opacity: 1, y: 0 }} // Animate to full opacity and original position.
             className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-            {/* Left Panel: Form Inputs */}
+            {/* Left Panel: Contains the main form for clinical inputs. It spans two columns on large screens. */}
             <div className="lg:col-span-2 space-y-6">
                 <Card className="border-0 shadow-md">
                     <CardHeader className="bg-primary/5 border-b pb-6">
@@ -144,7 +177,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                     <CardContent className="p-6">
                         <form id="liver-form" onSubmit={handleSubmit(onSubmit, onError)} className="space-y-8">
 
-                            {/* Patient Selection */}
+                            {/* Patient Selection Section */}
                             <div className="space-y-3">
                                 <label className="block text-sm font-semibold text-foreground">Registered Patient Profile</label>
                                 <select
@@ -159,13 +192,14 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                 {errors.patient_id && <p className="text-destructive text-xs font-medium">{errors.patient_id.message}</p>}
                             </div>
 
+                            {/* Age and Gender Inputs Section */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
                                 <div className="space-y-2">
                                     <label className="block text-sm font-bold text-foreground">Age</label>
                                     <input
                                         type="number"
                                         {...register('age')}
-                                        readOnly={!!selectedPatientId}
+                                        readOnly={!!selectedPatientId} // Age is read-only if a patient is selected.
                                         className={`w-full px-4 py-3 border border-border rounded-lg focus:ring-primary focus:border-primary transition-colors ${selectedPatientId ? 'bg-gray-100 cursor-not-allowed opacity-75' : 'bg-white'}`}
                                         placeholder="7"
                                     />
@@ -188,6 +222,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                 </div>
                             </div>
 
+                            {/* Steroid and Antivirals Inputs Section */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
                                 <div className="space-y-3">
                                     <label className="block text-sm font-bold text-foreground">Have you Addicted to Steroids?</label>
@@ -220,6 +255,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                 </div>
                             </div>
 
+                            {/* Fatigue and Spiders Inputs Section */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
                                 <div className="space-y-3">
                                     <label className="block text-sm font-bold text-foreground">Are You Fatigued?</label>
@@ -252,6 +288,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                 </div>
                             </div>
 
+                            {/* Varices and Ascites Inputs Section */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
                                 <div className="space-y-2">
                                     <label className="block text-sm font-bold text-foreground">Presence of Varices</label>
@@ -278,10 +315,12 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                 </div>
                             </div>
 
+                            {/* Liver Function Test (LFT) Results Section */}
                             <div className="pt-4 border-t border-border">
                                 <h3 className="text-lg font-bold text-primary mb-4">Liver Function Test (LFT) Results</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+                                    {/* Total Bilirubin Input */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-bold text-foreground">Total Bilirubin</label>
                                         <div className="relative">
@@ -300,6 +339,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                         </p>
                                     </div>
 
+                                    {/* Albumin Input */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-bold text-foreground">Albumin</label>
                                         <div className="relative">
@@ -318,6 +358,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                         </p>
                                     </div>
 
+                                    {/* SGPT / ALT Input */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-bold text-foreground">SGPT / ALT</label>
                                         <div className="relative">
@@ -335,6 +376,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                         </p>
                                     </div>
 
+                                    {/* SGOT / AST Input */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-bold text-foreground">SGOT / AST</label>
                                         <div className="relative">
@@ -352,6 +394,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                         </p>
                                     </div>
 
+                                    {/* Alk Phostate Input */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-bold text-foreground">Alk Phostate</label>
                                         <div className="relative">
@@ -368,6 +411,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                         </p>
                                     </div>
 
+                                    {/* Protime Input */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-bold text-foreground">Protime</label>
                                         <div className="relative">
@@ -384,6 +428,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                         </p>
                                     </div>
 
+                                    {/* Histology Input */}
                                     <div className="space-y-2">
                                         <label className="block text-sm font-bold text-foreground">Histology</label>
                                         <select
@@ -409,6 +454,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
             {/* Right Panel: Live Risk & Action */}
             <div className="lg:col-span-1">
                 <div className="sticky top-8 space-y-6">
+                    {/* Risk Preview Card */}
                     <Card className={`border-2 transition-colors duration-500 shadow-md ${liveRisk.level === 'High' ? 'border-destructive/50 bg-destructive/5' :
                             liveRisk.level === 'Moderate' ? 'border-amber-500/50 bg-amber-500/5' :
                                 liveRisk.level === 'Low' ? 'border-green-500/50 bg-green-500/5' :
@@ -417,6 +463,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                         <CardHeader className="pb-4">
                             <CardTitle className="text-lg flex justify-between items-center">
                                 <span>Risk Preview</span>
+                                {/* Displays appropriate icon based on risk level. */}
                                 {liveRisk.level === 'High' && <AlertCircle className="w-5 h-5 text-destructive animate-pulse" />}
                                 {liveRisk.level === 'Moderate' && <AlertTriangle className="w-5 h-5 text-amber-500" />}
                                 {liveRisk.level === 'Low' && <CheckCircle className="w-5 h-5 text-green-600" />}
@@ -425,11 +472,12 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                         </CardHeader>
                         <CardContent className="space-y-6">
 
+                            {/* Risk Level Display */}
                             <div className="flex flex-col items-center justify-center py-6 text-center">
                                 <motion.div
-                                    key={liveRisk.level}
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
+                                    key={liveRisk.level} // Key for animating changes in risk level.
+                                    initial={{ scale: 0.8, opacity: 0 }} // Initial animation state.
+                                    animate={{ scale: 1, opacity: 1 }} // Animation to stable state.
                                     className={`w-32 h-32 rounded-full flex items-center justify-center mb-4 shadow-inner ${liveRisk.level === 'High' ? 'bg-destructive text-destructive-foreground' :
                                             liveRisk.level === 'Moderate' ? 'bg-amber-500 text-white' :
                                                 liveRisk.level === 'Low' ? 'bg-green-600 text-white' :
@@ -446,6 +494,7 @@ export default function LiverForm({ patients = [] }: { patients?: UserProfile[] 
                                 </p>
                             </div>
 
+                            {/* Generate Report Button */}
                             <div className="pt-6 border-t border-border border-dashed">
                                 <button
                                     type="submit"

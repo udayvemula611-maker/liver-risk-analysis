@@ -1,64 +1,93 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
+/**
+ * CreateUserModal Component
+ *
+ * This modal allows administrators to create new user accounts with different roles (patient or doctor).
+ * It includes fields for full name, email, password, role, age, gender, and an option to assign a doctor
+ * if the new user is a patient.
+ *
+ * @param {object} props - The properties for the component.
+ * @param {boolean} props.isOpen - Controls the visibility of the modal.
+ * @param {() => void} props.onClose - Callback function to close the modal.
+ * @param {() => void} props.onSuccess - Callback function to be called upon successful user creation.
+ * @param {{ id: string; full_name: string }[]} [props.doctors=[]] - Optional array of doctor objects to assign patients to.
+ */
 export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = [] }: { isOpen: boolean, onClose: () => void, onSuccess: () => void, doctors?: { id: string; full_name: string }[] }) {
     const router = useRouter();
+    // State to manage the loading status during form submission.
     const [loading, setLoading] = useState(false);
+    // State to store form data for new user creation.
     const [formData, setFormData] = useState({
         full_name: '',
         email: '',
         password: '',
-        role: 'patient',
+        role: 'patient', // Default role is 'patient'.
         age: '',
-        gender: 'Male',
-        assigned_doctor: ''
+        gender: 'Male', // Default gender is 'Male'.
+        assigned_doctor: '' // Doctor ID if the user is a patient.
     });
 
+    // If the modal is not open, render nothing.
     if (!isOpen) return null;
 
+    /**
+     * Handles the form submission for creating a new user.
+     * @param {React.FormEvent} e - The form event.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        setLoading(true); // Set loading to true when submission starts.
 
         try {
+            // Send a POST request to the user creation API endpoint.
             const res = await fetch('/api/users/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData) // Send form data as JSON.
             });
 
-            const data = await res.json();
+            const data = await res.json(); // Parse the JSON response.
 
             if (!res.ok) {
+                // If the response is not OK, display an error toast.
                 toast.error(data.error || 'Failed to create user');
             } else {
+                // On successful creation, display a success toast and reset form.
                 toast.success(data.message);
                 setFormData({ full_name: '', email: '', password: '', role: 'patient', age: '', gender: 'Male', assigned_doctor: '' });
-                onSuccess();
-                onClose();
-                router.refresh();
+                onSuccess(); // Call the onSuccess callback.
+                onClose();   // Close the modal.
+                router.refresh(); // Refresh the router to update user lists.
             }
         } catch (error) {
+            // Catch and display unexpected errors during the API call.
             toast.error('An unexpected error occurred');
         } finally {
-            setLoading(false);
+            setLoading(false); // Always set loading to false after the operation completes.
         }
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                {/* Modal Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <h3 className="text-xl font-bold text-[#1E3A8A]">Create New User</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        {/* Close button icon */}
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
 
+                {/* User Creation Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {/* Full Name Input */}
                     <div>
                         <label className="block text-sm font-bold text-gray-800 mb-1">Full Name</label>
                         <input
@@ -69,6 +98,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = 
                             onChange={e => setFormData({ ...formData, full_name: e.target.value })}
                         />
                     </div>
+                    {/* Email Address Input */}
                     <div>
                         <label className="block text-sm font-bold text-gray-800 mb-1">Email Address</label>
                         <input
@@ -79,6 +109,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = 
                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                         />
                     </div>
+                    {/* Temporary Password Input */}
                     <div>
                         <label className="block text-sm font-bold text-gray-800 mb-1">Temporary Password</label>
                         <input
@@ -90,6 +121,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = 
                             onChange={e => setFormData({ ...formData, password: e.target.value })}
                         />
                     </div>
+                    {/* System Role Selection */}
                     <div>
                         <label className="block text-sm font-bold text-gray-800 mb-1">System Role</label>
                         <select
@@ -102,9 +134,11 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = 
                         </select>
                     </div>
 
+                    {/* Patient-specific Fields (conditionally rendered) */}
                     {formData.role === 'patient' && (
                         <>
                             <div className="flex gap-4">
+                                {/* Age Input */}
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold text-gray-800 mb-1">Age</label>
                                     <input
@@ -117,6 +151,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = 
                                         onChange={e => setFormData({ ...formData, age: e.target.value })}
                                     />
                                 </div>
+                                {/* Gender Selection */}
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold text-gray-800 mb-1">Gender</label>
                                     <select
@@ -131,6 +166,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = 
                                     </select>
                                 </div>
                             </div>
+                            {/* Assign Doctor Selection */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-800 mb-1">Assign Doctor</label>
                                 <select
@@ -149,6 +185,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess, doctors = 
                         </>
                     )}
 
+                    {/* Action Buttons */}
                     <div className="pt-4 flex gap-3">
                         <button
                             type="button"

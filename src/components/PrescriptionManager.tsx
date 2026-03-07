@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,6 +6,19 @@ import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
+/**
+ * PrescriptionManager Component
+ *
+ * This component handles the display and management of medical prescriptions for a given report.
+ * It allows doctors to add new prescriptions or view existing ones.
+ * Patients can only view an existing prescription.
+ *
+ * @param {object} props - The properties for the component.
+ * @param {string} props.reportId - The ID of the liver report associated with the prescription.
+ * @param {string} props.role - The role of the current user (e.g., 'doctor', 'patient').
+ * @param {string} props.doctorName - The full name of the doctor associated with the report.
+ * @param {any | null} props.initialPrescription - Existing prescription data, or null if none exists.
+ */
 export default function PrescriptionManager({
     reportId,
     role,
@@ -16,46 +30,57 @@ export default function PrescriptionManager({
     doctorName: string;
     initialPrescription: any | null
 }) {
-    const router = useRouter();
+    const router = useRouter(); // Next.js router for navigation and refreshing.
+    // State to control the visibility of the "Add Medical Prescription" form.
     const [isAdding, setIsAdding] = useState(false);
+    // State to manage the loading status during prescription submission.
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // State to track if the component has mounted on the client-side.
     const [mounted, setMounted] = useState(false);
 
+    // Effect to set `mounted` to true once the component has rendered on the client.
     useEffect(() => {
         setMounted(true);
     }, []);
 
+    // State to store the form data for a new prescription.
     const [formData, setFormData] = useState({
         prescription_text: '',
         follow_up_date: ''
     });
 
+    /**
+     * Handles the submission of a new prescription.
+     * @param {React.FormEvent} e - The form submission event.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
+        e.preventDefault(); // Prevent default form submission behavior.
+        setIsSubmitting(true); // Set submitting state to true.
         try {
+            // Send a POST request to the prescriptions API endpoint.
             const res = await fetch('/api/prescriptions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     report_id: reportId,
                     prescription_text: formData.prescription_text,
-                    follow_up_date: formData.follow_up_date ? new Date(formData.follow_up_date).toISOString() : null
+                    follow_up_date: formData.follow_up_date ? new Date(formData.follow_up_date).toISOString() : null // Convert date to ISO string if present.
                 })
             });
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            const data = await res.json(); // Parse the JSON response.
+            if (!res.ok) throw new Error(data.error); // Throw an error if the response is not OK.
 
-            toast.success("Prescription saved successfully!");
-            router.refresh(); // Refresh the server component to load the saved prescription
+            toast.success("Prescription saved successfully!"); // Display success notification.
+            router.refresh(); // Refresh the server component to load the newly saved prescription.
         } catch (error: any) {
-            toast.error(error.message || "Failed to save prescription");
+            toast.error(error.message || "Failed to save prescription"); // Display error notification.
         } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false); // Reset submitting state.
         }
     };
 
+    // If an initial prescription exists, display it.
     if (initialPrescription) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 mt-8 font-sans overflow-hidden">
@@ -67,7 +92,7 @@ export default function PrescriptionManager({
                 </div>
 
                 <div className="p-8 pb-12 relative bg-[#F8FAFC]">
-                    {/* Medical Header */}
+                    {/* Prescription Header: Doctor's name and "Rx" symbol. */}
                     <div className="flex justify-between items-end border-b-2 border-dashed border-gray-300 pb-4 mb-6">
                         <div>
                             <h4 className="text-2xl font-bold text-gray-900 leading-tight">{doctorName}</h4>
@@ -76,10 +101,12 @@ export default function PrescriptionManager({
                         <p className="text-gray-500 font-medium font-mono">Rx</p>
                     </div>
 
+                    {/* Prescription Text Content */}
                     <div className="whitespace-pre-wrap text-gray-800 leading-relaxed font-medium min-h-[150px]">
                         {initialPrescription.prescription_text}
                     </div>
 
+                    {/* Follow-up Date (conditionally displayed if available) */}
                     {initialPrescription.follow_up_date && (
                         <div className="mt-8 pt-4 border-t border-gray-200 flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -90,6 +117,7 @@ export default function PrescriptionManager({
                         </div>
                     )}
 
+                    {/* Doctor Signature Area */}
                     <div className="mt-16 pt-6 border-t-2 border-dashed border-gray-300 flex justify-end">
                         <div className="text-center w-48">
                             <div className="h-4 border-b border-gray-400 mb-2"></div>
@@ -101,6 +129,7 @@ export default function PrescriptionManager({
         );
     }
 
+    // If no initial prescription exists and the user is a doctor, display the "Add Prescription" button or form.
     if (role === 'doctor') {
         if (!isAdding) {
             return (
@@ -115,14 +144,17 @@ export default function PrescriptionManager({
             );
         }
 
+        // Form for adding a new prescription.
         return (
             <div className="mt-8 bg-white rounded-xl border border-gray-200 shadow-sm p-6 relative">
+                {/* Close Button for the prescription form. */}
                 <button
                     onClick={() => setIsAdding(false)}
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold"
                 >×</button>
                 <h3 className="font-bold text-xl text-[#1E3A8A] mb-4">Write Prescription</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Prescription Textarea */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">Medication & Diet Advice</label>
                         <textarea
@@ -134,6 +166,7 @@ export default function PrescriptionManager({
                             placeholder="Example:&#10;• Tab XYZ 1-0-1&#10;• Syrup ABC 10ml twice daily&#10;&#10;Diet Advice:&#10;Avoid oily foods and alcohol."
                         ></textarea>
                     </div>
+                    {/* Follow-up Date Input */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">Follow-up Date (Optional)</label>
                         <input
@@ -143,6 +176,7 @@ export default function PrescriptionManager({
                             className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1E3A8A]"
                         />
                     </div>
+                    {/* Save Prescription Button */}
                     <div className="flex justify-end pt-2">
                         <button
                             type="submit"
@@ -158,5 +192,6 @@ export default function PrescriptionManager({
         );
     }
 
-    return null; // Patient looking at unprescribed report gets nothing.
+    // If the user is a patient and no prescription exists, or if the role is not a doctor, render nothing.
+    return null;
 }

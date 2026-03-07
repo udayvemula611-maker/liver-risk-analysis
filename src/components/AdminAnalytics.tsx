@@ -1,36 +1,54 @@
+
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@//components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-const RISK_COLORS = {
-    'High': '#DC2626',
-    'Moderate': '#F59E0B',
-    'Low': '#16A34A',
-    'Unknown': '#9CA3AF' // Fallback
-};
-
+/**
+ * AdminAnalytics Component
+ *
+ * This component displays analytics data for administrators, including:
+ * - A Pie Chart showing the distribution of risk levels across all reports.
+ * - A Bar Chart showing the top 5 providers (doctors) by the number of reports they have submitted.
+ *
+ * @param {object} props - The properties for the component.
+ * @param {any[]} props.reports - An array of report objects containing risk levels and doctor IDs.
+ * @param {any[]} props.users - An array of user objects, used to map doctor IDs to full names.
+ */
 export default function AdminAnalytics({ reports, users }: { reports: any[], users: any[] }) {
 
-    // Calculate Risk Distribution
+    // Defines a mapping of risk levels to specific color codes for consistent chart visualization.
+    const RISK_COLORS = {
+        'High': '#DC2626',
+        'Moderate': '#F59E0B',
+        'Low': '#16A34A',
+        'Unknown': '#9CA3AF' // Fallback color for undefined or unknown risk levels.
+    };
+
+    // Calculate the distribution of risk levels across all reports.
+    // The reducer iterates through each report and counts occurrences of each risk level.
     const riskCounts = reports.reduce((acc, report) => {
         const risk = report.risk_level || 'Unknown';
         acc[risk] = (acc[risk] || 0) + 1;
         return acc;
     }, {});
 
+    // Transforms the risk counts into an array of objects suitable for the PieChart component.
     const pieData = Object.keys(riskCounts).map(key => ({
         name: key,
         value: riskCounts[key]
     }));
 
-    // Calculate Doctor Load (Top 5)
+    // Calculate the workload for each doctor by counting the number of reports they've submitted.
+    // Filters out reports without a doctor_id and accumulates counts per doctor.
     const doctorCounts = reports.reduce((acc, report) => {
         if (!report.doctor_id) return acc;
         acc[report.doctor_id] = (acc[report.doctor_id] || 0) + 1;
         return acc;
     }, {});
 
+    // Prepares data for the BarChart, mapping doctor IDs to their full names and report counts.
+    // It then sorts doctors by their report count in descending order and slices the top 5.
     const barData = Object.keys(doctorCounts).map(docId => {
         const doc = users.find(u => u.id === docId);
         return {
@@ -41,7 +59,7 @@ export default function AdminAnalytics({ reports, users }: { reports: any[], use
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Risk Distribution Chart */}
+            {/* Card for displaying the Risk Distribution Pie Chart. */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">Risk Distribution</CardTitle>
@@ -75,7 +93,7 @@ export default function AdminAnalytics({ reports, users }: { reports: any[], use
                 </CardContent>
             </Card>
 
-            {/* Doctor Workload Chart */}
+            {/* Card for displaying the Doctor Workload Bar Chart. */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg font-bold text-primary">Top Providers by Reports</CardTitle>

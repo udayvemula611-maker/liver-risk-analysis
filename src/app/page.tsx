@@ -1,26 +1,41 @@
-import Link from 'next/link';
-import { ShieldCheck, Activity, Database } from 'lucide-react';
+import Link from 'next/link'; // Next.js Link component for client-side navigation.
+import { ShieldCheck, Activity, Database } from 'lucide-react'; // Icons from Lucide React for visual elements.
 
+/**
+ * Home Component
+ *
+ * This is the main landing page of the application, serving as an introduction
+ * to the Liver Analysis platform. It features a hero section with a compelling
+ * title and description, a call-to-action button, and a set of feature cards
+ * highlighting the key benefits of the platform.
+ *
+ * @returns {JSX.Element} The rendered home page.
+ */
 export default function Home() {
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-[#F9FAFB] relative overflow-hidden">
 
+      {/* Main content area of the landing page. */}
       <div className="relative z-10 text-center space-y-10 max-w-5xl px-4 py-16">
+        {/* Application Logo */}
         <div className="flex justify-center mb-6">
           <div className="h-20 w-20 bg-[#1E3A8A] rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-white text-4xl font-bold">H</span>
+            <span className="text-white text-4xl font-bold">H</span> {/* 'H' for Hepatoscope or Health */}
           </div>
         </div>
 
+        {/* Hero Section: Title and Tagline */}
         <h1 className="text-4xl md:text-6xl font-extrabold text-[#1E3A8A] tracking-tight leading-tight">
           AI-Assisted <br className="hidden md:block" />
           <span className="text-[#3B82F6]">Liver Health</span> Assessment
         </h1>
 
+        {/* Sub-headline / Description */}
         <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium">
           Liver Analysis empowers healthcare professionals and patients with rapid, secure, and intelligent liver function test evaluations.
         </p>
 
+        {/* Call to Action Button */}
         <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
           <Link
             href="/login"
@@ -30,19 +45,23 @@ export default function Home() {
           </Link>
         </div>
 
+        {/* Feature Cards Section */}
         <div className="grid sm:grid-cols-3 gap-6 pt-16 max-w-4xl mx-auto text-left">
+          {/* Feature Card 1: Clinical Risk Evaluation */}
           <div className="flex flex-col items-center sm:items-start p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-            <Activity className="h-10 w-10 text-[#3B82F6] mb-4" />
+            <Activity className="h-10 w-10 text-[#3B82F6] mb-4" /> {/* Icon for activity/evaluation. */}
             <h3 className="font-bold text-gray-900 text-lg">Clinical Risk Evaluation</h3>
             <p className="text-gray-500 mt-2 text-center sm:text-left text-sm">Rule-based scoring maps LFT values strictly to medical risk levels.</p>
           </div>
+          {/* Feature Card 2: AI Medical Explanation */}
           <div className="flex flex-col items-center sm:items-start p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-            <ShieldCheck className="h-10 w-10 text-[#3B82F6] mb-4" />
+            <ShieldCheck className="h-10 w-10 text-[#3B82F6] mb-4" /> {/* Icon for security/AI. */}
             <h3 className="font-bold text-gray-900 text-lg">AI Medical Explanation</h3>
             <p className="text-gray-500 mt-2 text-center sm:text-left text-sm">Generates plain-language medical context to help patients understand results.</p>
           </div>
+          {/* Feature Card 3: Secure Cloud Storage */}
           <div className="flex flex-col items-center sm:items-start p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-            <Database className="h-10 w-10 text-[#3B82F6] mb-4" />
+            <Database className="h-10 w-10 text-[#3B82F6] mb-4" /> {/* Icon for database/storage. */}
             <h3 className="font-bold text-gray-900 text-lg">Secure Cloud Storage</h3>
             <p className="text-gray-500 mt-2 text-center sm:text-left text-sm">Healthcare-grade Row-Level Security ensures data is isolated and protected.</p>
           </div>
