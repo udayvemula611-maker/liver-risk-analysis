@@ -37,8 +37,8 @@ import {
  * @param {{ id: string }} props.params - The route parameters, containing the report's ID.
  * @returns {Promise<JSX.Element>} The rendered detailed report page.
  */
-export default async function ReportDetail({ params }: { params: { id: string } }) {
-    const { id } = params; // Extract report ID from route parameters.
+export default async function ReportDetail({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params; // Extract report ID from route parameters.
 
     // Authenticate user. Doctors, Patients, and Admins can view reports.
     // RLS policies in Supabase will restrict access to only relevant reports.

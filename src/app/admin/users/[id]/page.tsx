@@ -18,8 +18,8 @@ import * as motion from 'framer-motion/client'; // Animation library.
  * @param {{ id: string }} props.params - The route parameters, containing the user's ID.
  * @returns {Promise<JSX.Element>} The rendered admin user profile page.
  */
-export default async function AdminUserProfilePage({ params }: { params: { id: string } }) {
-    const { id } = params; // Extract user ID from route parameters.
+export default async function AdminUserProfilePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params; // Extract user ID from route parameters.
 
     // Authenticate admin user. Redirects to login if not authorized.
     const adminUser = await checkRole(['admin']);
